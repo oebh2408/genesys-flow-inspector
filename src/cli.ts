@@ -1,17 +1,16 @@
 #!/usr/bin/env node
-import { existsSync, readFileSync, readdirSync, statSync, writeFileSync } from 'node:fs';
-import { basename, join, relative } from 'node:path';
-import { format, type FileResult, type Format } from './format.js';
-import { inspect } from './inspect.js';
-import { normalizeInventory } from './inventory.js';
-import { FlowParseError } from './parse.js';
+import { writeFileSync } from 'node:fs';
+import { basename, relative } from 'node:path';
+import { collectFiles, inspectFile, loadOptions } from './files.js';
+import { format, type Format } from './format.js';
 import { renderHtml } from './render.js';
 import { rules } from './rules.js';
-import type { InspectOptions, RuleSetting } from './types.js';
+import { serve } from './server.js';
 
 const USAGE = `Usage:
   flow-inspector lint <file or directory>... [options]
   flow-inspector view <file> [-o out.html] [options]
+  flow-inspector serve [directory] [--port 4100] [options]
   flow-inspector rules
 
 Options:
@@ -20,6 +19,7 @@ Options:
   --format <name>       text, json, github or sarif (lint only, default text)
   --max-warnings <n>    Exit with code 1 when there are more than n warnings
   -o, --output <file>   Output file for view (default: <flow>.html)
+  --port <n>            Port for serve (default 4100). It listens on 127.0.0.1 only.
 `;
 
 interface Args {
@@ -42,50 +42,6 @@ function parseArgs(argv: string[]): Args {
   return args;
 }
 
-function loadOptions(flags: Record<string, string>): InspectOptions {
-  const options: InspectOptions = {};
-  const configPath = flags.config ?? (existsSync('.flowinspector.json') ? '.flowinspector.json' : undefined);
-  let inventoryPath = flags.inventory;
-  if (configPath) {
-    const config = JSON.parse(readFileSync(configPath, 'utf8')) as { rules?: Record<string, RuleSetting>; inventory?: string };
-    options.rules = config.rules;
-    for (const id of Object.keys(config.rules ?? {})) {
-      if (!rules.some((r) => r.id === id)) throw new Error(`Unknown rule '${id}' in ${configPath}.`);
-    }
-    inventoryPath ??= config.inventory;
-  }
-  if (inventoryPath) options.inventory = normalizeInventory(JSON.parse(readFileSync(inventoryPath, 'utf8')));
-  return options;
-}
-
-function collectFiles(paths: string[]): string[] {
-  const out: string[] = [];
-  const walk = (p: string) => {
-    const st = statSync(p);
-    if (st.isDirectory()) {
-      for (const entry of readdirSync(p).sort()) {
-        if (entry === 'node_modules' || entry.startsWith('.')) continue;
-        const full = join(p, entry);
-        if (statSync(full).isDirectory() || /\.ya?ml$/i.test(entry)) walk(full);
-      }
-    } else out.push(p);
-  };
-  paths.forEach(walk);
-  return out;
-}
-
-function inspectFile(file: string, options: InspectOptions): FileResult & { result?: ReturnType<typeof inspect> } {
-  try {
-    const result = inspect(readFileSync(file, 'utf8'), options);
-    return { file, issues: result.issues, result };
-  } catch (err) {
-    if (err instanceof FlowParseError) {
-      return { file, issues: [{ rule: 'parse-error', severity: 'error', message: err.message, loc: err.loc }] };
-    }
-    throw err;
-  }
-}
-
 function main(argv: string[]): number {
   const args = parseArgs(argv);
   if (!args.command || args.flags.help !== undefined || args.command === 'help') {
@@ -98,7 +54,22 @@ function main(argv: string[]): number {
     return 0;
   }
 
-  const options = loadOptions(args.flags);
+  if (args.command === 'serve') {
+    const paths = args.paths.length ? args.paths : ['.'];
+    void serve({ paths, config: args.flags.config, inventory: args.flags.inventory, port: args.flags.port ? Number(args.flags.port) : undefined })
+      .then((server) => {
+        const address = server.address();
+        const port = typeof address === 'object' && address ? address.port : args.flags.port;
+        process.stdout.write(`Flow inspector on http://localhost:${port}, watching ${paths.join(', ')}. Ctrl+C to stop.\n`);
+      })
+      .catch((err: Error) => {
+        process.stderr.write(`flow-inspector: ${err.message}\n`);
+        process.exitCode = 2;
+      });
+    return 0;
+  }
+
+  const options = loadOptions({ config: args.flags.config, inventory: args.flags.inventory });
 
   if (args.command === 'lint') {
     if (!args.paths.length) throw new Error('lint needs at least one file or directory.');

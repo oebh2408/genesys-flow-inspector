@@ -34,7 +34,7 @@ function text(results: FileResult[]): string {
     }
     lines.push('');
   }
-  const summary = (Object.keys(total) as Severity[]).map((s) => `${total[s]} ${s}${total[s] === 1 ? '' : 's'}`).join(', ');
+  const summary = (Object.keys(total) as Severity[]).map((s) => `${total[s]} ${s}${total[s] === 1 || s === 'info' ? '' : 's'}`).join(', ');
   lines.push(`${results.length} file${results.length === 1 ? '' : 's'} checked: ${summary}`);
   return lines.join('\n');
 }

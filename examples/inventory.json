@@ -1,6 +1,6 @@
 {
-  "queues": ["Billing", "Technical Support", "General"],
-  "dataActions": ["Get Account By Phone"],
-  "prompts": ["WelcomeGreeting", "MainMenu", "YourBalanceIs", "ClosedMessage", "HolidayMessage"],
+  "queues": ["Billing", "Technical Support", "General", "Chat Support"],
+  "dataActions": ["Get Account By Phone", "Get Account By Email"],
+  "prompts": ["WelcomeGreeting", "MainMenu", "YourBalanceIs", "ClosedMessage", "HolidayMessage", "PositionInQueue", "CallbackOffer", "PremiumHoldMusic"],
   "scheduleGroups": ["Support Hours"]
 }

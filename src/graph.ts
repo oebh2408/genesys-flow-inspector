@@ -128,7 +128,7 @@ export function buildGraph(flow: Flow, issues: Issue[] = []): FlowGraph {
         const endId = `${block.id}/end`;
         add({
           id: endId,
-          label: customerFacing ? 'End of task (disconnects)' : `End of ${block.kind}`,
+          label: customerFacing ? `End of ${block.kind} (disconnects)` : `End of ${block.kind}`,
           detail: 'implicit end',
           kind: 'fallthrough',
           blockId: block.id,

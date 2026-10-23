@@ -1,0 +1,77 @@
+# A chat flow with two smaller issues: a lookup whose timeout is not handled, and a transfer with nothing after a failure.
+inboundChat:
+  name: Web Chat
+  division: Home
+  startUpRef: "/inboundChat/states/state[Start_1]"
+  defaultLanguage: en-us
+  settingsErrorHandling:
+    errorHandling:
+      queue:
+        targetQueue:
+          lit:
+            name: General
+  states:
+    - state:
+        name: Start
+        refId: Start_1
+        actions:
+          - sendResponse:
+              name: Greeting
+              messageBody:
+                tts: Hi, thanks for reaching out. Let us find your account.
+          - callData:
+              name: Find customer by email
+              timeout:
+                lit:
+                  seconds: 8
+              category:
+                Account Services:
+                  dataAction:
+                    Get Account By Email:
+                      inputs:
+                        email:
+                          exp: Chat.CustomerEmail
+              outputs:
+                success:
+                  actions:
+                    - updateData:
+                        name: Mark known customer
+                failure:
+                  actions:
+                    - updateData:
+                        name: Mark unknown customer
+          - decision:
+              name: Known customer?
+              condition:
+                exp: Flow.KnownCustomer
+              outputs:
+                "yes":
+                  actions:
+                    - changeState:
+                        name: To support
+                        targetStateRef: "/inboundChat/states/state[Support_2]"
+                "no":
+                  actions:
+                    - transferToAcd:
+                        name: Transfer to general
+                        targetQueue:
+                          lit:
+                            name: General
+                        outputs:
+                          failure:
+                            actions:
+                              - sendResponse:
+                                  name: Transfer failed
+                                  messageBody:
+                                    tts: Sorry, nobody is available right now. Please try again later.
+                              - disconnect:
+                                  name: Disconnect after failed transfer
+    - state:
+        name: Support
+        refId: Support_2
+        actions:
+          - transferToAcd:
+              name: Transfer to chat support
+              targetQueue:
+                lit:
+                  name: Chat Support

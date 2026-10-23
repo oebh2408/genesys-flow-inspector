@@ -18,8 +18,19 @@ export interface RenderOptions {
   source?: string;
 }
 
-/** Render a self-contained HTML page with the flow diagram and its issues. No network access is needed to open it. */
-export function renderHtml(result: InspectResult, options: RenderOptions = {}): string {
+/** The flow diagram, laid out: SVG markup plus what the side panel needs. Used by the static page and by `serve`. */
+export interface Diagram {
+  name: string;
+  type: string;
+  blocks: number;
+  counts: Record<Severity, number>;
+  width: number;
+  height: number;
+  svg: string;
+  data: { issues: Issue[]; details: Record<string, unknown> };
+}
+
+export function renderDiagram(result: InspectResult): Diagram {
   const { flow, issues } = result;
   const graph = buildGraph(flow, issues);
 
@@ -90,17 +101,42 @@ export function renderHtml(result: InspectResult, options: RenderOptions = {}): 
   for (const n of graph.nodes) {
     details[n.id] = { label: n.label, detail: n.detail, kind: n.kind, line: n.line, raw: n.raw === undefined ? undefined : stringify(n.raw, { nullStr: '' }).trimEnd(), block: n.blockId ? flow.blocks.find((b) => b.id === n.blockId)?.name : undefined };
   }
-  const data = { issues, details };
-  const counts = countBySeverity(issues);
+  return {
+    name: flow.name,
+    type: flow.type,
+    blocks: flow.blocks.length,
+    counts: countBySeverity(issues),
+    width: Math.ceil(maxX),
+    height: Math.ceil(maxY),
+    svg: parts.join('\n'),
+    data: { issues, details },
+  };
+}
 
-  return PAGE.replace('{{TITLE}}', () => esc(flow.name))
-    .replace('{{FLOW_NAME}}', () => esc(flow.name))
-    .replace('{{FLOW_META}}', () => esc([flow.type, options.source, `${flow.blocks.length} blocks`].filter(Boolean).join(' · ')))
-    .replace('{{COUNTS}}', () => (['error', 'warning', 'info'] as Severity[]).map((s) => `<span class="count count-${s}">${counts[s]} ${s}${counts[s] === 1 ? '' : 's'}</span>`).join(''))
-    .replaceAll('{{WIDTH}}', () => String(Math.ceil(maxX)))
-    .replaceAll('{{HEIGHT}}', () => String(Math.ceil(maxY)))
-    .replace('{{SVG}}', () => parts.join('\n'))
-    .replace('{{DATA}}', () => JSON.stringify(data).replace(/</g, '\\u003c'));
+/** Render a self-contained HTML page with the flow diagram and its issues. No network access is needed to open it. */
+export function renderHtml(result: InspectResult, options: RenderOptions = {}): string {
+  const d = renderDiagram(result);
+  return PAGE.replace('{{TITLE}}', () => esc(d.name))
+    .replace('{{FLOW_NAME}}', () => esc(d.name))
+    .replace('{{FLOW_META}}', () => esc([d.type, options.source, `${d.blocks} blocks`].filter(Boolean).join(' · ')))
+    .replace('{{COUNTS}}', () => countsHtml(d.counts))
+    .replace('{{SVG}}', () => svgElement(d))
+    .replace('{{DATA}}', () => JSON.stringify(d.data).replace(/</g, '\\u003c'));
+}
+
+export function countsHtml(counts: Record<Severity, number>): string {
+  return (['error', 'warning', 'info'] as Severity[]).map((s) => `<span class="count count-${s}">${counts[s]} ${s}${counts[s] === 1 || s === 'info' ? '' : 's'}</span>`).join('');
+}
+
+/** The `<svg>` element with arrow markers, ready to put inside the canvas. */
+export function svgElement(d: Diagram): string {
+  return `<svg class="diagram" xmlns="http://www.w3.org/2000/svg" width="${d.width}" height="${d.height}" viewBox="0 0 ${d.width} ${d.height}">
+<defs>
+<marker id="arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="marker-flow" d="M0,0 L10,5 L0,10 z"/></marker>
+<marker id="arrow-jump" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="marker-jump" d="M0,0 L10,5 L0,10 z"/></marker>
+</defs>
+${d.svg}
+</svg>`;
 }
 
 function renderNode(n: GraphNode, p: Placed, nodeIssues: Issue[]): string {
@@ -167,17 +203,12 @@ function esc(s: string): string {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;');
 }
 
-const PAGE = `<!doctype html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
-<title>{{TITLE}} · flow inspector</title>
-<style>
+/** Colours, diagram and side panel styles shared by the static page and the `serve` app. */
+export const DIAGRAM_CSS = `
 :root {
   --bg: #f6f7f9; --panel: #ffffff; --line: #dfe3e8; --text: #1b1f24; --muted: #5f6b7a;
-  --node: #ffffff; --group: #eef1f5; --edge: #8a96a6; --jump: #7a5af5;
-  --error: #d1343b; --warning: #c77700; --info: #2f6fd6;
+  --node: #ffffff; --group: #eef1f5; --edge: #8a96a6; --jump: #7a5af5; --hover: #eef1f5;
+  --error: #d1343b; --warning: #c77700; --info: #2f6fd6; --accent: #2f6fd6;
   --menu: #7a5af5; --task: #1f8a70; --state: #1f8a70; --choice: #9b87f5; --decision: #2f6fd6;
   --data: #0e8fb3; --transfer: #c77700; --end: #5f6b7a; --jump-c: #7a5af5; --audio: #3aa776; --step: #8a96a6;
   --start: #1b1f24; --fallthrough: #d1343b;
@@ -185,8 +216,8 @@ const PAGE = `<!doctype html>
 @media (prefers-color-scheme: dark) {
   :root {
     --bg: #0f1216; --panel: #161a20; --line: #2a313b; --text: #e6e9ee; --muted: #93a0b1;
-    --node: #1c2129; --group: #141920; --edge: #5d6979; --jump: #a08cff;
-    --error: #ff6b6b; --warning: #f0a83a; --info: #6aa1ff;
+    --node: #1c2129; --group: #141920; --edge: #5d6979; --jump: #a08cff; --hover: #1c2129;
+    --error: #ff6b6b; --warning: #f0a83a; --info: #6aa1ff; --accent: #6aa1ff;
     --menu: #a08cff; --task: #3cc3a0; --state: #3cc3a0; --choice: #b9a9ff; --decision: #6aa1ff;
     --data: #3bbbe0; --transfer: #f0a83a; --end: #93a0b1; --jump-c: #a08cff; --audio: #5fd39b; --step: #6b7787;
     --start: #e6e9ee; --fallthrough: #ff6b6b;
@@ -194,22 +225,17 @@ const PAGE = `<!doctype html>
 }
 * { box-sizing: border-box; }
 html, body { margin: 0; height: 100%; background: var(--bg); color: var(--text); font: 14px/1.45 ui-sans-serif, system-ui, -apple-system, "Segoe UI", sans-serif; }
-header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
-header h1 { margin: 0; font-size: 16px; font-weight: 600; }
-header .meta { color: var(--muted); font-size: 12.5px; }
-.counts { display: flex; gap: 8px; }
-.count { font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--line); }
+button, .button { display: inline-block; font: inherit; font-size: 13px; text-decoration: none; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; cursor: pointer; }
+button:hover, .button:hover { border-color: var(--muted); }
+.counts { display: flex; gap: 8px; flex-wrap: wrap; }
+.count { font-size: 12px; padding: 2px 9px; border-radius: 99px; border: 1px solid var(--line); white-space: nowrap; }
 .count-error { color: var(--error); } .count-warning { color: var(--warning); } .count-info { color: var(--info); }
-.tools { margin-left: auto; display: flex; gap: 6px; }
-button { font: inherit; font-size: 13px; color: var(--text); background: var(--panel); border: 1px solid var(--line); border-radius: 7px; padding: 4px 10px; cursor: pointer; }
-button:hover { border-color: var(--muted); }
-main { display: grid; grid-template-columns: 1fr 360px; height: calc(100% - 57px); }
-#canvas { position: relative; overflow: hidden; cursor: grab; touch-action: none; }
-#canvas.dragging { cursor: grabbing; }
-svg { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
-aside { border-left: 1px solid var(--line); background: var(--panel); overflow: auto; }
-aside section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
-aside h2 { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
+.canvas { position: relative; overflow: hidden; cursor: grab; touch-action: none; }
+.canvas.dragging { cursor: grabbing; }
+.canvas svg { position: absolute; left: 0; top: 0; transform-origin: 0 0; }
+.panel { border-left: 1px solid var(--line); background: var(--panel); overflow: auto; }
+.panel section { padding: 14px 16px; border-bottom: 1px solid var(--line); }
+.panel h2 { margin: 0 0 10px; font-size: 12px; font-weight: 600; color: var(--muted); text-transform: uppercase; letter-spacing: .04em; }
 .issue { display: block; width: 100%; text-align: left; padding: 8px 10px; margin-bottom: 6px; border-radius: 8px; border: 1px solid var(--line); background: transparent; }
 .issue .rule { font-size: 11.5px; font-family: ui-monospace, SFMono-Regular, Menlo, monospace; }
 .issue.sev-error .rule { color: var(--error); } .issue.sev-warning .rule { color: var(--warning); } .issue.sev-info .rule { color: var(--info); }
@@ -241,41 +267,20 @@ ${(['menu', 'task', 'state', 'choice', 'decision', 'data', 'transfer', 'end', 'a
 .kind-start .box { fill: var(--start); } .kind-start .label { fill: var(--bg); } .kind-start .detail { fill: var(--bg); opacity: .7; }
 .kind-fallthrough .box { stroke: var(--fallthrough); stroke-dasharray: 4 3; }
 .marker-flow { fill: var(--edge); } .marker-jump { fill: var(--jump); }
-@media (max-width: 800px) {
-  main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; height: auto; }
-  aside { border-left: 0; border-top: 1px solid var(--line); }
-  .tools { margin-left: 0; }
-}
-</style>
-</head>
-<body>
-<header>
-  <div><h1>{{FLOW_NAME}}</h1><div class="meta">{{FLOW_META}}</div></div>
-  <div class="counts">{{COUNTS}}</div>
-  <div class="tools"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit">Fit</button></div>
-</header>
-<main>
-  <div id="canvas">
-    <svg id="diagram" xmlns="http://www.w3.org/2000/svg" width="{{WIDTH}}" height="{{HEIGHT}}" viewBox="0 0 {{WIDTH}} {{HEIGHT}}">
-      <defs>
-        <marker id="arrow-flow" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="marker-flow" d="M0,0 L10,5 L0,10 z"/></marker>
-        <marker id="arrow-jump" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path class="marker-jump" d="M0,0 L10,5 L0,10 z"/></marker>
-      </defs>
-      {{SVG}}
-    </svg>
-  </div>
-  <aside>
-    <section id="details"><h2>Details</h2><p class="empty">Select a node to see its definition.</p></section>
-    <section><h2>Issues</h2><div id="issues"></div></section>
-  </aside>
-</main>
-<script type="application/json" id="data">{{DATA}}</script>
-<script>
-(() => {
-  const data = JSON.parse(document.getElementById('data').textContent);
-  const canvas = document.getElementById('canvas');
-  const svg = document.getElementById('diagram');
+`;
+
+/**
+ * Defines `mountDiagram(opts)`: pan and zoom on the canvas, node selection, the details panel and the issue list.
+ * Returns `{ fit, select, zoom, view, destroy }`; pass a previous `view()` as `opts.view` to keep the zoom
+ * and position across a re-render. Plain browser JavaScript, no dependencies.
+ */
+export const DIAGRAM_SCRIPT = String.raw`
+function mountDiagram(opts) {
+  const { canvas, details: detailsEl, issues: list, data } = opts;
+  const svg = canvas.querySelector('svg');
   const W = svg.width.baseVal.value, H = svg.height.baseVal.value;
+  const ac = new AbortController();
+  const on = (el, ev, fn, o) => el.addEventListener(ev, fn, { signal: ac.signal, ...(o || {}) });
   let scale = 1, tx = 0, ty = 0;
   const apply = () => { svg.style.transform = 'translate(' + tx + 'px,' + ty + 'px) scale(' + scale + ')'; };
   const fit = () => {
@@ -288,26 +293,24 @@ ${(['menu', 'task', 'state', 'choice', 'decision', 'data', 'transfer', 'end', 'a
     const next = Math.min(3, Math.max(0.15, scale * factor));
     tx = cx - (cx - tx) * (next / scale); ty = cy - (cy - ty) * (next / scale); scale = next; apply();
   };
-  canvas.addEventListener('wheel', (e) => {
+  const zoom = (factor) => { const r = canvas.getBoundingClientRect(); zoomAt(factor, r.width / 2, r.height / 2); };
+  on(canvas, 'wheel', (e) => {
     e.preventDefault();
     const r = canvas.getBoundingClientRect();
     zoomAt(e.deltaY < 0 ? 1.12 : 1 / 1.12, e.clientX - r.left, e.clientY - r.top);
   }, { passive: false });
   let drag = null;
-  canvas.addEventListener('pointerdown', (e) => { if (e.target.closest('.node')) return; drag = { x: e.clientX - tx, y: e.clientY - ty }; canvas.classList.add('dragging'); canvas.setPointerCapture(e.pointerId); });
-  canvas.addEventListener('pointermove', (e) => { if (!drag) return; tx = e.clientX - drag.x; ty = e.clientY - drag.y; apply(); });
-  canvas.addEventListener('pointerup', () => { drag = null; canvas.classList.remove('dragging'); });
-  document.getElementById('fit').onclick = fit;
-  document.getElementById('zoom-in').onclick = () => { const r = canvas.getBoundingClientRect(); zoomAt(1.25, r.width / 2, r.height / 2); };
-  document.getElementById('zoom-out').onclick = () => { const r = canvas.getBoundingClientRect(); zoomAt(0.8, r.width / 2, r.height / 2); };
+  on(canvas, 'pointerdown', (e) => { if (e.target.closest('.node')) return; drag = { x: e.clientX - tx, y: e.clientY - ty }; canvas.classList.add('dragging'); canvas.setPointerCapture(e.pointerId); });
+  on(canvas, 'pointermove', (e) => { if (!drag) return; tx = e.clientX - drag.x; ty = e.clientY - drag.y; apply(); });
+  on(canvas, 'pointerup', () => { drag = null; canvas.classList.remove('dragging'); });
 
   const esc = (s) => String(s).replace(/[&<>"]/g, (c) => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;' }[c]));
-  const detailsEl = document.getElementById('details');
+  const intro = detailsEl.innerHTML;
   const select = (id, center) => {
-    document.querySelectorAll('.node.selected').forEach((n) => n.classList.remove('selected'));
-    const el = document.querySelector('.node[data-id="' + CSS.escape(id) + '"]');
+    svg.querySelectorAll('.node.selected').forEach((n) => n.classList.remove('selected'));
+    const el = svg.querySelector('.node[data-id="' + CSS.escape(id) + '"]');
     const d = data.details[id];
-    if (!el || !d) return;
+    if (!el || !d) { detailsEl.innerHTML = intro; return false; }
     el.classList.add('selected');
     const own = data.issues.filter((i) => (i.nodeId || i.blockId) === id);
     detailsEl.innerHTML = '<h2>Details</h2><dl>' +
@@ -322,13 +325,14 @@ ${(['menu', 'task', 'state', 'choice', 'decision', 'data', 'transfer', 'end', 'a
       scale = Math.max(scale, 0.8);
       tx = r.width / 2 - (box.x + box.width / 2) * scale; ty = r.height / 2 - (box.y + box.height / 2) * scale; apply();
     }
+    if (opts.onSelect) opts.onSelect(id);
+    return true;
   };
-  document.querySelectorAll('.node').forEach((n) => {
-    n.addEventListener('click', () => select(n.dataset.id, false));
-    n.addEventListener('keydown', (e) => { if (e.key === 'Enter') select(n.dataset.id, false); });
+  svg.querySelectorAll('.node').forEach((n) => {
+    on(n, 'click', () => select(n.dataset.id, false));
+    on(n, 'keydown', (e) => { if (e.key === 'Enter') select(n.dataset.id, false); });
   });
-  const list = document.getElementById('issues');
-  if (!data.issues.length) list.innerHTML = '<p class="empty">No issues found.</p>';
+  list.innerHTML = data.issues.length ? '' : '<p class="empty">No issues found.</p>';
   data.issues.forEach((i) => {
     const b = document.createElement('button');
     b.className = 'issue sev-' + i.severity;
@@ -336,9 +340,57 @@ ${(['menu', 'task', 'state', 'choice', 'decision', 'data', 'transfer', 'end', 'a
     b.onclick = () => { const id = i.nodeId || i.blockId; if (id) select(id, true); };
     list.appendChild(b);
   });
-  window.addEventListener('resize', fit);
-  fit();
-})();
+  on(window, 'resize', fit);
+  if (opts.view) { scale = opts.view.scale; tx = opts.view.tx; ty = opts.view.ty; apply(); } else fit();
+  return { fit, select, zoom, view: () => ({ scale, tx, ty }), destroy: () => ac.abort() };
+}
+`;
+
+const PAGE = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>{{TITLE}} · flow inspector</title>
+<style>
+${DIAGRAM_CSS}
+header { display: flex; flex-wrap: wrap; align-items: center; gap: 12px 20px; padding: 12px 16px; border-bottom: 1px solid var(--line); background: var(--panel); }
+header h1 { margin: 0; font-size: 16px; font-weight: 600; }
+header .meta { color: var(--muted); font-size: 12.5px; }
+.tools { margin-left: auto; display: flex; gap: 6px; }
+main { display: grid; grid-template-columns: 1fr 360px; height: calc(100% - 57px); }
+@media (max-width: 800px) {
+  main { grid-template-columns: 1fr; grid-template-rows: 60vh auto; height: auto; }
+  .panel { border-left: 0; border-top: 1px solid var(--line); }
+  .tools { margin-left: 0; }
+}
+</style>
+</head>
+<body>
+<header>
+  <div><h1>{{FLOW_NAME}}</h1><div class="meta">{{FLOW_META}}</div></div>
+  <div class="counts">{{COUNTS}}</div>
+  <div class="tools"><button id="zoom-out" aria-label="Zoom out">−</button><button id="zoom-in" aria-label="Zoom in">+</button><button id="fit">Fit</button></div>
+</header>
+<main>
+  <div class="canvas" id="canvas">{{SVG}}</div>
+  <aside class="panel">
+    <section id="details"><h2>Details</h2><p class="empty">Select a node to see its definition.</p></section>
+    <section><h2>Issues</h2><div id="issues"></div></section>
+  </aside>
+</main>
+<script type="application/json" id="data">{{DATA}}</script>
+<script>
+${DIAGRAM_SCRIPT}
+const view = mountDiagram({
+  canvas: document.getElementById('canvas'),
+  details: document.getElementById('details'),
+  issues: document.getElementById('issues'),
+  data: JSON.parse(document.getElementById('data').textContent),
+});
+document.getElementById('fit').onclick = view.fit;
+document.getElementById('zoom-in').onclick = () => view.zoom(1.25);
+document.getElementById('zoom-out').onclick = () => view.zoom(0.8);
 </script>
 </body>
 </html>

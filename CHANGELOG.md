@@ -8,3 +8,4 @@
 - Config file to change rule severities.
 - CLI with `lint`, `view` and `rules`; output as text, JSON, GitHub annotations or SARIF.
 - Self-contained HTML viewer with pan, zoom, node details and issue navigation.
+- `serve`: local web interface for a directory of flows, with an issue overview, filters, the diagram per flow and reload on file changes.

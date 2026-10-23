@@ -8,9 +8,9 @@
 
 Genesys Cloud Architect validates a flow when it is published, and that validation checks configuration, not paths. It will not tell you that a caller is dropped at the end of a task when a transfer fails, that a failed data action is ignored and the call carries on as if it had worked, or that two menu choices use the same key. Teams that keep their flows in Git through [Archy](https://developer.genesys.cloud/devapps/archy/) have the YAML, but nothing that reads it.
 
-This tool reads the Archy export, follows every path through the flow and reports those problems with file and line, in a terminal or in CI. It also draws the flow as an interactive diagram in a single HTML file that opens in any browser.
+This tool reads the Archy export, follows every path through the flow and reports those problems with file and line, in a terminal or in CI. It also has a local web interface that draws each flow as an interactive diagram and updates while you edit, and can write a single HTML file to share.
 
-<img src="docs/demo.svg" alt="Terminal demo: linting two Architect flows finds 3 errors, 4 warnings and 1 info, each with its line number and rule" width="100%">
+<img src="docs/demo.svg" alt="Terminal demo: linting four Architect flows finds 3 errors, 6 warnings and 1 info, each with its line number and rule" width="100%">
 
 <sub>Linting the flows in [examples/flows](examples/flows) (`npm run lint:examples`).</sub>
 
@@ -74,6 +74,7 @@ Each issue has the line and column in the YAML file. The exit code is 1 when the
 | `--format <name>` | `text` (default), `json`, `github` (workflow annotations) or `sarif`. |
 | `--max-warnings <n>` | Fail when there are more than `n` warnings. |
 | `-o, --output <file>` | Output path for `view`. Defaults to the flow file name with `.html`. |
+| `--port <n>` | Port for `serve`. Defaults to 4100. |
 
 ### Inventory
 
@@ -104,17 +105,27 @@ Keys can be singular or plural. Values can be plain names, objects with a `name`
 
 Each rule can be set to `error`, `warning`, `info` or `off`.
 
-## Viewer
+## Web interface
+
+```sh
+npx flow-inspector serve flows/ --inventory inventory.json
+```
+
+This starts a local server on http://localhost:4100 that lints every flow in the directory and shows the results in the browser. The overview lists all issues across the flows, with filters by severity and rule; clicking one opens the flow with that node selected.
+
+<img src="docs/app-overview.png" alt="Web interface: the example flows in a sidebar, totals per severity and the list of issues across all flows" width="100%">
+
+Each flow is drawn as a diagram with menus, tasks and transfers. Click a node to see its YAML and its issues, or click an issue to jump to the node. Nodes in dead code are faded, dashed purple edges are jumps between tasks and menus, and a red dashed node marks where a path ends without a disconnect or transfer.
+
+<img src="docs/app-flow.png" alt="Web interface in dark mode: the support line flow with a selected transfer and its implicit-end warning" width="100%">
+
+The page reloads the results when a flow, the inventory or the config file changes, so you can keep it open while editing or re-exporting with Archy. The server only listens on 127.0.0.1 and rejects requests with a different `Host` header. It follows the system light or dark theme.
+
+To share one flow, use **Download HTML** in the interface or `view` from the command line. It writes a self-contained file (no scripts or fonts loaded from the network) that can be attached to a ticket or a pull request:
 
 ```sh
 npx flow-inspector view flows/support-line.yaml -o support-line.html
 ```
-
-<img src="docs/viewer-overview.png" alt="Viewer: the example flow drawn as a diagram, with menus, tasks and transfers, and the list of issues on the right" width="100%">
-
-The HTML file is self-contained (no scripts or fonts loaded from the network), so it can be attached to a ticket or a pull request. Click a node to see its YAML and its issues, or click an issue to jump to the node. Nodes in dead code are faded, dashed purple edges are jumps between tasks and menus, and a red dashed node marks where a path ends without a disconnect or transfer. It follows the system light or dark theme.
-
-<img src="docs/viewer-detail.png" alt="Viewer in dark mode with a selected transfer and its implicit-end warning" width="100%">
 
 ## In CI
 
@@ -154,7 +165,7 @@ for (const issue of result.issues) {
 const html = renderHtml(result, { source: 'support-line.yaml' });
 ```
 
-`parseFlow` returns the parsed model (blocks, actions, branches, references), `analyze` returns reachability and path information, and `buildGraph` returns the nodes and edges used by the viewer, in case you want to draw them differently.
+`parseFlow` returns the parsed model (blocks, actions, branches, references), `analyze` returns reachability and path information, and `buildGraph` returns the nodes and edges used by the viewer, in case you want to draw them differently. `serve` and `createInspectorApp` start the web interface or return its request handler, to mount it in another server.
 
 ## Limits
 
@@ -178,7 +189,8 @@ npm test                # rules against the example flows and hand-written cases
 npm run lint:examples
 npm run view:example    # writes example.html
 npm run demo:svg        # re-renders docs/demo.svg from the real lint output
-npm run screenshots     # regenerates the viewer images, needs a local Chromium
+npm run build && node dist/cli.js serve examples/flows --inventory examples/inventory.json
+npm run screenshots     # regenerates the interface images, needs a local Chromium
 ```
 
 ## License

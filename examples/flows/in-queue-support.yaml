@@ -1,0 +1,60 @@
+# The in-queue flow for support calls: hold music, position in queue and a callback offer. No issues.
+inQueueCall:
+  name: Support In-Queue
+  division: Home
+  startUpRef: "/inQueueCall/tasks/task[Hold_1]"
+  defaultLanguage: en-us
+  settingsErrorHandling:
+    errorHandling:
+      disconnect:
+        none: true
+    preHandlingAudio:
+      tts: Sorry, we could not keep you in the queue. Please call again.
+  settingsInQueueCall:
+    holdMusic:
+      lit:
+        name: PremiumHoldMusic
+  tasks:
+    - task:
+        name: Hold
+        refId: Hold_1
+        actions:
+          - playAudio:
+              name: Position in queue
+              audio:
+                exp: ToAudio(Prompt.PositionInQueue)
+          - holdMusic:
+              name: Music
+              prompt:
+                lit:
+                  name: PremiumHoldMusic
+              playStyle:
+                duration:
+                  lit:
+                    seconds: 60
+          - decision:
+              name: Waiting over three minutes?
+              condition:
+                exp: Call.EstimatedWaitTime > MakeDuration(0, 0, 3, 0)
+              outputs:
+                "yes":
+                  actions:
+                    - jumpToTask:
+                        name: Offer callback
+                        targetTaskRef: "/inQueueCall/tasks/task[Callback_2]"
+                "no":
+                  actions:
+                    - loopAnytime:
+                        name: Keep holding
+                        targetTaskRef: "/inQueueCall/tasks/task[Hold_1]"
+    - task:
+        name: Callback
+        refId: Callback_2
+        actions:
+          - playAudio:
+              name: Callback offer
+              audio:
+                exp: ToAudio(Prompt.CallbackOffer)
+          - jumpToTask:
+              name: Back to hold
+              targetTaskRef: "/inQueueCall/tasks/task[Hold_1]"

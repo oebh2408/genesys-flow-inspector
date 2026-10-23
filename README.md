@@ -1,14 +1,18 @@
+<img src="docs/diagram.jpg" alt="Flow Inspector: an Archy YAML export goes in, every path is followed, issues come out with line numbers" width="100%">
+
 # genesys-flow-inspector
 
 [![ci](https://github.com/oebh2408/genesys-flow-inspector/actions/workflows/ci.yml/badge.svg)](https://github.com/oebh2408/genesys-flow-inspector/actions/workflows/ci.yml)
-![license](https://img.shields.io/badge/license-MIT-blue)
-![node](https://img.shields.io/badge/node-%3E%3D18-brightgreen)
+![node](https://img.shields.io/badge/node-%E2%89%A518-6FF2C6)
+![license](https://img.shields.io/badge/license-MIT-A98BFF)
 
-Lint and visualize Genesys Cloud Architect flows exported with [Archy](https://developer.genesys.cloud/devapps/archy/).
+Genesys Cloud Architect validates a flow when it is published, and that validation checks configuration, not paths. It will not tell you that a caller is dropped at the end of a task when a transfer fails, that a failed data action is ignored and the call carries on as if it had worked, or that two menu choices use the same key. Teams that keep their flows in Git through [Archy](https://developer.genesys.cloud/devapps/archy/) have the YAML, but nothing that reads it.
 
-Architect validates configuration when you publish, inside Architect. It does not follow call paths, so it will not tell you that a caller can fall off the end of a task after a failed transfer or that a data action failure is silently ignored, and it does not run on the YAML in your repository. This tool reads the Archy export, builds the call paths, and reports those problems with file and line numbers, in a terminal or in CI. It also renders the flow as an interactive diagram you can open in any browser.
+This tool reads the Archy export, follows every path through the flow and reports those problems with file and line, in a terminal or in CI. It also draws the flow as an interactive diagram in a single HTML file that opens in any browser.
 
-![Flow viewer](docs/viewer-overview.png)
+<img src="docs/demo.svg" alt="Terminal demo: linting two Architect flows finds 3 errors, 4 warnings and 1 info, each with its line number and rule" width="100%">
+
+<sub>Linting the flows in [examples/flows](examples/flows) (`npm run lint:examples`).</sub>
 
 ## What it checks
 
@@ -59,30 +63,7 @@ Then lint a file or a directory of `.yaml` files:
 npx flow-inspector lint flows/
 ```
 
-```text
-flows/support-line.yaml
-  13:3    info     When an error occurs the flow disconnects without telling the customer. ...  silent-error-handling
-  38:13   error    Key 2 in menu 'Main Menu' is used by both 'Technical support' and 'Order status'; only the first one is reachable.  duplicate-dtmf
-  42:13   error    Reference '/inboundCall/tasks/task[Callbck_40]' does not match any task, menu or state in this flow.  unresolved-reference
-  54:13   warning  'Look up account' does nothing on failure; the flow continues as if the call had succeeded.  unhandled-failure
-  83:13   warning  The task 'Billing' reaches its end if the transfer 'Transfer to billing' fails. The interaction is disconnected without a message.  implicit-end
-  113:13  warning  'Disconnect after order status' never runs: every path before it ends earlier.  unreachable-action
-  133:7   warning  The task 'Old Promotions' is never reached from the start of the flow.  unreachable-block
-
-1 file checked: 2 errors, 4 warnings, 1 info
-```
-
-The exit code is 1 when there are errors, or more warnings than `--max-warnings`.
-
-To open the diagram:
-
-```sh
-npx flow-inspector view flows/support-line.yaml -o support-line.html
-```
-
-The HTML file is self-contained (no scripts or fonts loaded from the network), so it can be attached to a ticket or a pull request. Click a node to see its definition and issues, click an issue to jump to the node. Nodes in dead code are faded; dashed purple edges are jumps between tasks and menus.
-
-![Selected node with its issue](docs/viewer-detail.png)
+Each issue has the line and column in the YAML file. The exit code is 1 when there are errors, or more warnings than `--max-warnings`.
 
 ### Options
 
@@ -122,6 +103,18 @@ Keys can be singular or plural. Values can be plain names, objects with a `name`
 ```
 
 Each rule can be set to `error`, `warning`, `info` or `off`.
+
+## Viewer
+
+```sh
+npx flow-inspector view flows/support-line.yaml -o support-line.html
+```
+
+<img src="docs/viewer-overview.png" alt="Viewer: the example flow drawn as a diagram, with menus, tasks and transfers, and the list of issues on the right" width="100%">
+
+The HTML file is self-contained (no scripts or fonts loaded from the network), so it can be attached to a ticket or a pull request. Click a node to see its YAML and its issues, or click an issue to jump to the node. Nodes in dead code are faded, dashed purple edges are jumps between tasks and menus, and a red dashed node marks where a path ends without a disconnect or transfer. It follows the system light or dark theme.
+
+<img src="docs/viewer-detail.png" alt="Viewer in dark mode with a selected transfer and its implicit-end warning" width="100%">
 
 ## In CI
 
@@ -171,18 +164,25 @@ const html = renderHtml(result, { source: 'support-line.yaml' });
 - `unknown-resource` only checks literal names. It cannot know what an expression evaluates to.
 - It does not call the Genesys Cloud API. Producing the inventory file is up to you.
 
+## Design decisions
+
+- [0001 · Work on the Archy export, not the API](docs/adr/0001-work-on-the-archy-export.md)
+- [0002 · How paths are followed](docs/adr/0002-path-semantics.md)
+- [0003 · Self-contained HTML viewer with layout computed up front](docs/adr/0003-self-contained-viewer.md)
+
 ## Development
 
-```sh
+```bash
 npm install
-npm test
+npm test                # rules against the example flows and hand-written cases
 npm run lint:examples
 npm run view:example    # writes example.html
-npm run screenshots     # regenerates docs/*.png, needs a local Chromium
+npm run demo:svg        # re-renders docs/demo.svg from the real lint output
+npm run screenshots     # regenerates the viewer images, needs a local Chromium
 ```
-
-Design notes are in [docs/adr](docs/adr).
 
 ## License
 
-MIT
+MIT © [Oscar Benavides](https://ob0.dev)
+
+Not affiliated with or endorsed by Genesys. Genesys Cloud is a trademark of its owner.

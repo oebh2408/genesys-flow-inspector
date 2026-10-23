@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="901" height="575" viewBox="0 0 901 575" role="img" aria-label="Terminal demo: linting two Architect flows finds 3 errors, 4 warnings and 1 info, each with its line number and rule">
+<style>
+text{font-family:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,"Liberation Mono",monospace;font-size:14px}
+@keyframes l0{0%,19.39%{opacity:0}20.19%,94%{opacity:1}100%{opacity:0}}.l0{opacity:0;animation:l0 18s linear infinite}
+@keyframes l1{0%,20.00%{opacity:0}20.80%,94%{opacity:1}100%{opacity:0}}.l1{opacity:0;animation:l1 18s linear infinite}
+@keyframes l2{0%,20.61%{opacity:0}21.41%,94%{opacity:1}100%{opacity:0}}.l2{opacity:0;animation:l2 18s linear infinite}
+@keyframes l3{0%,21.22%{opacity:0}22.02%,94%{opacity:1}100%{opacity:0}}.l3{opacity:0;animation:l3 18s linear infinite}
+@keyframes l4{0%,21.83%{opacity:0}22.63%,94%{opacity:1}100%{opacity:0}}.l4{opacity:0;animation:l4 18s linear infinite}
+@keyframes l5{0%,22.44%{opacity:0}23.24%,94%{opacity:1}100%{opacity:0}}.l5{opacity:0;animation:l5 18s linear infinite}
+@keyframes l6{0%,23.06%{opacity:0}23.86%,94%{opacity:1}100%{opacity:0}}.l6{opacity:0;animation:l6 18s linear infinite}
+@keyframes l7{0%,23.67%{opacity:0}24.47%,94%{opacity:1}100%{opacity:0}}.l7{opacity:0;animation:l7 18s linear infinite}
+@keyframes l8{0%,24.28%{opacity:0}25.08%,94%{opacity:1}100%{opacity:0}}.l8{opacity:0;animation:l8 18s linear infinite}
+@keyframes l9{0%,24.89%{opacity:0}25.69%,94%{opacity:1}100%{opacity:0}}.l9{opacity:0;animation:l9 18s linear infinite}
+@keyframes l10{0%,25.50%{opacity:0}26.30%,94%{opacity:1}100%{opacity:0}}.l10{opacity:0;animation:l10 18s linear infinite}
+@keyframes l11{0%,26.11%{opacity:0}26.91%,94%{opacity:1}100%{opacity:0}}.l11{opacity:0;animation:l11 18s linear infinite}
+@keyframes l12{0%,26.72%{opacity:0}27.52%,94%{opacity:1}100%{opacity:0}}.l12{opacity:0;animation:l12 18s linear infinite}
+@keyframes l13{0%,27.33%{opacity:0}28.13%,94%{opacity:1}100%{opacity:0}}.l13{opacity:0;animation:l13 18s linear infinite}
+@keyframes l14{0%,27.94%{opacity:0}28.74%,94%{opacity:1}100%{opacity:0}}.l14{opacity:0;animation:l14 18s linear infinite}
+@keyframes l15{0%,28.56%{opacity:0}29.36%,94%{opacity:1}100%{opacity:0}}.l15{opacity:0;animation:l15 18s linear infinite}
+@keyframes l16{0%,29.17%{opacity:0}29.97%,94%{opacity:1}100%{opacity:0}}.l16{opacity:0;animation:l16 18s linear infinite}
+@keyframes l17{0%,29.78%{opacity:0}30.58%,94%{opacity:1}100%{opacity:0}}.l17{opacity:0;animation:l17 18s linear infinite}
+@keyframes l18{0%,30.39%{opacity:0}31.19%,94%{opacity:1}100%{opacity:0}}.l18{opacity:0;animation:l18 18s linear infinite}
+@keyframes l19{0%,31.00%{opacity:0}31.80%,94%{opacity:1}100%{opacity:0}}.l19{opacity:0;animation:l19 18s linear infinite}
+@keyframes l21{0%,32.22%{opacity:0}33.02%,94%{opacity:1}100%{opacity:0}}.l21{opacity:0;animation:l21 18s linear infinite}
+@keyframes type{0%{width:0}2%{width:0}16.61%{width:632.25px}94%{width:632.25px}100%{width:0}}.type{animation:type 18s steps(75) infinite}
+</style>
+<rect width="901" height="575" rx="14" fill="#05050B"/>
+<rect x="0.5" y="0.5" width="900" height="574" rx="14" fill="none" stroke="#1E1B2E"/>
+<circle cx="24" cy="22" r="5.5" fill="#2A2638"/><circle cx="42" cy="22" r="5.5" fill="#2A2638"/><circle cx="60" cy="22" r="5.5" fill="#2A2638"/>
+<text x="450.5" y="26" text-anchor="middle" fill="#8B86A0" style="font-size:12px">genesys-flow-inspector</text>
+<line x1="0" y1="42" x2="901" y2="42" stroke="#1E1B2E"/>
+<clipPath id="typed"><rect class="type" x="44.86" y="47" height="21" width="0"/></clipPath>
+<text x="28" y="64" xml:space="preserve"><tspan fill="#6FF2C6">$</tspan></text>
+<text x="44.86" y="64" fill="#F4F2EC" clip-path="url(#typed)" xml:space="preserve">npx flow-inspector lint examples/flows --inventory examples/inventory.json</text>
+<text class="l0" x="28" y="85" xml:space="preserve"><tspan fill="#6FF2C6" >examples/flows/support-line.yaml</tspan></text>
+<text class="l1" x="28" y="106" xml:space="preserve"><tspan fill="#8B86A0" >  13:3    </tspan><tspan fill="#A98BFF" >info    </tspan><tspan fill="#F4F2EC" >When an error occurs the flow disconnects without telling</tspan></text>
+<text class="l2" x="28" y="127" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >the customer. Consider a short message or a transfer to a</tspan></text>
+<text class="l3" x="28" y="148" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >fallback queue.</tspan><tspan fill="#8B86A0" >                                             </tspan><tspan fill="#8B86A0" >silent-error-handling</tspan></text>
+<text class="l4" x="28" y="169" xml:space="preserve"><tspan fill="#8B86A0" >  38:13   </tspan><tspan fill="#FF7B8A" >error   </tspan><tspan fill="#F4F2EC" >Key 2 in menu 'Main Menu' is used by both 'Technical</tspan></text>
+<text class="l5" x="28" y="190" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >support' and 'Order status'; only the first one is</tspan></text>
+<text class="l6" x="28" y="211" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >reachable.</tspan><tspan fill="#8B86A0" >                                                  </tspan><tspan fill="#8B86A0" >duplicate-dtmf</tspan></text>
+<text class="l7" x="28" y="232" xml:space="preserve"><tspan fill="#8B86A0" >  42:13   </tspan><tspan fill="#FF7B8A" >error   </tspan><tspan fill="#F4F2EC" >Reference '/inboundCall/tasks/task[Callbck_40]' does not</tspan></text>
+<text class="l8" x="28" y="253" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >match any task, menu or state in this flow.</tspan><tspan fill="#8B86A0" >                 </tspan><tspan fill="#8B86A0" >unresolved-reference</tspan></text>
+<text class="l9" x="28" y="274" xml:space="preserve"><tspan fill="#8B86A0" >  54:13   </tspan><tspan fill="#F2C46D" >warning </tspan><tspan fill="#F4F2EC" >'Look up account' does nothing on failure; the flow</tspan></text>
+<text class="l10" x="28" y="295" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >continues as if the call had succeeded.</tspan><tspan fill="#8B86A0" >                     </tspan><tspan fill="#8B86A0" >unhandled-failure</tspan></text>
+<text class="l11" x="28" y="316" xml:space="preserve"><tspan fill="#8B86A0" >  83:13   </tspan><tspan fill="#F2C46D" >warning </tspan><tspan fill="#F4F2EC" >The task 'Billing' reaches its end if the transfer</tspan></text>
+<text class="l12" x="28" y="337" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >'Transfer to billing' fails. The interaction is</tspan></text>
+<text class="l13" x="28" y="358" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >disconnected without a message.</tspan><tspan fill="#8B86A0" >                             </tspan><tspan fill="#8B86A0" >implicit-end</tspan></text>
+<text class="l14" x="28" y="379" xml:space="preserve"><tspan fill="#8B86A0" >  113:13  </tspan><tspan fill="#F2C46D" >warning </tspan><tspan fill="#F4F2EC" >'Disconnect after order status' never runs: every path</tspan></text>
+<text class="l15" x="28" y="400" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >before it ends earlier.</tspan><tspan fill="#8B86A0" >                                     </tspan><tspan fill="#8B86A0" >unreachable-action</tspan></text>
+<text class="l16" x="28" y="421" xml:space="preserve"><tspan fill="#8B86A0" >  133:7   </tspan><tspan fill="#F2C46D" >warning </tspan><tspan fill="#F4F2EC" >The task 'Old Promotions' is never reached from the start</tspan></text>
+<text class="l17" x="28" y="442" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >of the flow.</tspan><tspan fill="#8B86A0" >                                                </tspan><tspan fill="#8B86A0" >unreachable-block</tspan></text>
+<text class="l18" x="28" y="463" xml:space="preserve"><tspan fill="#8B86A0" >  140:17  </tspan><tspan fill="#FF7B8A" >error   </tspan><tspan fill="#F4F2EC" >Prompt 'SummerPromo' is not in the inventory. Check the</tspan></text>
+<text class="l19" x="28" y="484" xml:space="preserve"><tspan fill="#8B86A0" >                  </tspan><tspan fill="#F4F2EC" >name or create it before publishing.</tspan><tspan fill="#8B86A0" >                        </tspan><tspan fill="#8B86A0" >unknown-resource</tspan></text>
+<text class="l21" x="28" y="526" xml:space="preserve"><tspan fill="#8B86A0" >2 files checked: </tspan><tspan fill="#FF7B8A" >3 errors</tspan><tspan fill="#8B86A0" >, </tspan><tspan fill="#F2C46D" >4 warnings</tspan><tspan fill="#8B86A0" >, </tspan><tspan fill="#A98BFF" >1 info</tspan></text>
+</svg>

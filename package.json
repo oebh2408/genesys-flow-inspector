@@ -49,6 +49,7 @@
     "lint:examples": "node dist/cli.js lint examples/flows --inventory examples/inventory.json",
     "view:example": "node dist/cli.js view examples/flows/support-line.yaml -o example.html",
     "screenshots": "npm run build && node scripts/screenshots.mjs",
+    "demo:svg": "npm run build && node scripts/render-demo.mjs",
     "prepare": "npm run build"
   },
   "dependencies": {

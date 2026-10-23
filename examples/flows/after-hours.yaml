@@ -1,0 +1,100 @@
+# A small flow with no issues: schedule check, data lookup with fallbacks, transfer with failure handling.
+inboundCall:
+  name: After Hours
+  division: Home
+  startUpRef: "/inboundCall/tasks/task[Entry_1]"
+  defaultLanguage: en-us
+  initialGreeting:
+    tts: Thank you for calling.
+  settingsErrorHandling:
+    errorHandling:
+      queue:
+        targetQueue:
+          lit:
+            name: General
+    preHandlingAudio:
+      tts: Sorry, something went wrong. Please hold for an agent.
+  tasks:
+    - task:
+        name: Entry
+        refId: Entry_1
+        actions:
+          - evaluateScheduleGroup:
+              name: Opening hours
+              scheduleGroup:
+                lit:
+                  name: Support Hours
+              outputs:
+                open:
+                  actions:
+                    - jumpToTask:
+                        name: To lookup
+                        targetTaskRef: "/inboundCall/tasks/task[Lookup_2]"
+                closed:
+                  actions:
+                    - playAudio:
+                        name: Closed message
+                        audio:
+                          exp: ToAudio(Prompt.ClosedMessage)
+                    - disconnect:
+                        name: Disconnect closed
+                holiday:
+                  actions:
+                    - playAudio:
+                        name: Holiday message
+                        audio:
+                          exp: ToAudio(Prompt.HolidayMessage)
+                    - disconnect:
+                        name: Disconnect holiday
+                emergency:
+                  actions:
+                    - transferToAcd:
+                        name: Emergency queue
+                        targetQueue:
+                          lit:
+                            name: General
+                        outputs:
+                          failure:
+                            actions:
+                              - disconnect:
+                                  name: Disconnect emergency
+    - task:
+        name: Lookup
+        refId: Lookup_2
+        actions:
+          - callData:
+              name: Find customer
+              category:
+                Account Services:
+                  dataAction:
+                    Get Account By Phone:
+                      inputs:
+                        phone:
+                          exp: Call.Ani
+              outputs:
+                success:
+                  actions:
+                    - setScreenPop:
+                        name: Screen pop
+                failure:
+                  actions:
+                    - updateData:
+                        name: Mark unknown caller
+                timeout:
+                  actions:
+                    - updateData:
+                        name: Mark lookup timeout
+          - transferToAcd:
+              name: Transfer to general
+              targetQueue:
+                lit:
+                  name: General
+              outputs:
+                failure:
+                  actions:
+                    - playAudio:
+                        name: Transfer failed
+                        audio:
+                          tts: We could not connect you. Please call again later.
+                    - disconnect:
+                        name: Disconnect after failed transfer

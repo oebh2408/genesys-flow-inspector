@@ -1,0 +1,12 @@
+export { inspect } from './inspect.js';
+export { parseFlow, FlowParseError } from './parse.js';
+export { analyze, roleOf } from './analysis.js';
+export { rules } from './rules.js';
+export { buildGraph } from './graph.js';
+export { renderHtml } from './render.js';
+export { format } from './format.js';
+export { normalizeInventory } from './inventory.js';
+export type * from './types.js';
+export type { Rule, RuleContext } from './rules.js';
+export type { FlowGraph, GraphNode, GraphEdge, NodeKind } from './graph.js';
+export type { FileResult, Format } from './format.js';

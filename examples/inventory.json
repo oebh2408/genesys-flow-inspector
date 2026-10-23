@@ -1,0 +1,6 @@
+{
+  "queues": ["Billing", "Technical Support", "General"],
+  "dataActions": ["Get Account By Phone"],
+  "prompts": ["WelcomeGreeting", "MainMenu", "YourBalanceIs", "ClosedMessage", "HolidayMessage"],
+  "scheduleGroups": ["Support Hours"]
+}

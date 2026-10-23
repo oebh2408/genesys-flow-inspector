@@ -1,0 +1,10 @@
+import { chromium } from 'playwright-core';
+const b = await chromium.launch({ executablePath: '/opt/pw-browsers/chromium-1243/chrome-linux64/chrome' });
+const p = await b.newPage({ viewport: { width: 1300, height: 900 }, deviceScaleFactor: 1.5 });
+p.on('pageerror', e => console.log('pageerror', e.message));
+await p.goto('file:///tmp/claude-0/mm/arch.html');
+await p.waitForFunction(() => document.title !== '', null, { timeout: 20000 });
+console.log(await p.title());
+const els = await p.$$('pre.mermaid');
+for (let i = 0; i < els.length; i++) await els[i].screenshot({ path: `/tmp/claude-0/mm/d${i}.png` });
+await b.close();

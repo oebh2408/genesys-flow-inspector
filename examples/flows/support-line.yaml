@@ -1,0 +1,142 @@
+# A support line with several common mistakes, used in the README and tests.
+inboundCall:
+  name: Support Line
+  division: Home
+  startUpRef: "/inboundCall/menus/menu[Main Menu_10]"
+  defaultLanguage: en-us
+  supportedLanguages:
+    en-us:
+      defaultLanguageSkill:
+        noValue: true
+  initialGreeting:
+    exp: ToAudio(Prompt.WelcomeGreeting)
+  settingsErrorHandling:
+    errorHandling:
+      disconnect:
+        none: true
+  menus:
+    - menu:
+        name: Main Menu
+        refId: Main Menu_10
+        audio:
+          exp: ToAudio(Prompt.MainMenu)
+        settingsMenu:
+          extensions:
+            disableAll: true
+          acceptJumpToMenu: false
+        choices:
+          - menuJumpToTask:
+              name: Billing
+              dtmf: digit_1
+              targetTaskRef: "/inboundCall/tasks/task[Billing_20]"
+          - menuTransferToAcd:
+              name: Technical support
+              dtmf: digit_2
+              queue:
+                lit:
+                  name: Technical Support
+          - menuJumpToTask:
+              name: Order status
+              dtmf: digit_2
+              targetTaskRef: "/inboundCall/tasks/task[Order Status_30]"
+          - menuJumpToTask:
+              name: Callback
+              dtmf: digit_3
+              targetTaskRef: "/inboundCall/tasks/task[Callbck_40]"
+          - menuDisconnect:
+              name: Goodbye
+              dtmf: digit_9
+  tasks:
+    - task:
+        name: Billing
+        refId: Billing_20
+        actions:
+          - callData:
+              name: Look up account
+              timeout:
+                lit:
+                  seconds: 10
+              category:
+                Account Services:
+                  dataAction:
+                    Get Account By Phone:
+                      inputs:
+                        phone:
+                          exp: Call.Ani
+                      successOutputs:
+                        balance: Task.balance
+              outputs:
+                success:
+                  actions:
+                    - playAudio:
+                        name: Read balance
+                        audio:
+                          exp: Append(ToAudio(Prompt.YourBalanceIs), ToAudioNumber(Task.balance))
+                failure:
+                  actions:
+                timeout:
+                  actions:
+                    - playAudio:
+                        name: Lookup slow
+                        audio:
+                          tts: We could not find your account right now.
+          - transferToAcd:
+              name: Transfer to billing
+              targetQueue:
+                lit:
+                  name: Billing
+              outputs:
+                failure:
+                  actions:
+    - task:
+        name: Order Status
+        refId: Order Status_30
+        actions:
+          - decision:
+              name: Business hours?
+              condition:
+                exp: Hour(GetCurrentDateTimeUtc()) >= 13
+              outputs:
+                yes:
+                  actions:
+                    - jumpToTask:
+                        name: Retry lookup
+                        targetTaskRef: "/inboundCall/tasks/task[Order Lookup_35]"
+                no:
+                  actions:
+                    - playAudio:
+                        name: Closed
+                        audio:
+                          exp: ToAudio(Prompt.ClosedMessage)
+                    - disconnect:
+                        name: Disconnect
+          - disconnect:
+              name: Disconnect after order status
+          - playAudio:
+              name: Survey invite
+              audio:
+                tts: Please stay on the line for a short survey.
+    - task:
+        name: Order Lookup
+        refId: Order Lookup_35
+        actions:
+          - updateData:
+              name: Count attempt
+              statements:
+                - integer:
+                    variable: Flow.attempts
+                    value:
+                      exp: Flow.attempts + 1
+          - jumpToTask:
+              name: Back to order status
+              targetTaskRef: "/inboundCall/tasks/task[Order Status_30]"
+    - task:
+        name: Old Promotions
+        refId: Old Promotions_50
+        actions:
+          - playAudio:
+              name: Promo
+              audio:
+                exp: ToAudio(Prompt.SummerPromo)
+          - disconnect:
+              name: Disconnect

@@ -1,0 +1,64 @@
+{
+  "name": "genesys-flow-inspector",
+  "version": "0.1.0",
+  "description": "Lint and visualize Genesys Cloud Architect flows exported with Archy. Finds dead ends, unreachable tasks, unhandled failures and missing resources, and renders an interactive diagram.",
+  "keywords": [
+    "genesys",
+    "genesys-cloud",
+    "architect",
+    "archy",
+    "ivr",
+    "contact-center",
+    "linter",
+    "flow",
+    "diagram",
+    "static-analysis",
+    "sarif"
+  ],
+  "author": "Oscar Benavides (https://ob0.dev)",
+  "license": "MIT",
+  "homepage": "https://github.com/oebh2408/genesys-flow-inspector#readme",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/oebh2408/genesys-flow-inspector.git"
+  },
+  "type": "module",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js"
+    }
+  },
+  "bin": {
+    "flow-inspector": "./dist/cli.js"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "engines": {
+    "node": ">=18"
+  },
+  "sideEffects": false,
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run",
+    "lint:examples": "node dist/cli.js lint examples/flows --inventory examples/inventory.json",
+    "view:example": "node dist/cli.js view examples/flows/support-line.yaml -o example.html",
+    "screenshots": "npm run build && node scripts/screenshots.mjs",
+    "prepare": "npm run build"
+  },
+  "dependencies": {
+    "@dagrejs/dagre": "^3.1.1",
+    "yaml": "^2.9.1"
+  },
+  "devDependencies": {
+    "@types/node": "^22.20.5",
+    "playwright-core": "^1.64.1",
+    "typescript": "^5.9.3",
+    "vitest": "^5.0.5"
+  }
+}

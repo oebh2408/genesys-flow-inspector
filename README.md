@@ -1,4 +1,4 @@
-<img src="docs/diagram.jpg" alt="Flow Inspector: an Archy YAML export goes in, every path is followed, issues come out with line numbers" width="100%">
+<img src="docs/diagram.jpg" alt="Flow Inspector: an Archy YAML export goes in, every path is followed, issues come out with line numbers in a web interface or for CI" width="100%">
 
 # genesys-flow-inspector
 
@@ -8,11 +8,26 @@
 
 Genesys Cloud Architect validates a flow when it is published, and that validation checks configuration, not paths. It will not tell you that a caller is dropped at the end of a task when a transfer fails, that a failed data action is ignored and the call carries on as if it had worked, or that two menu choices use the same key. Teams that keep their flows in Git through [Archy](https://developer.genesys.cloud/devapps/archy/) have the YAML, but nothing that reads it.
 
-This tool reads the Archy export, follows every path through the flow and reports those problems with file and line, in a terminal or in CI. It also has a local web interface that draws each flow as an interactive diagram and updates while you edit, and can write a single HTML file to share.
+This tool reads the Archy export, follows every path through the flow and reports those problems with file and line. It runs as a local web interface that draws each flow as an interactive diagram next to its issues and updates while you edit, and as a command line tool for the terminal and CI.
 
-<img src="docs/demo.svg" alt="Terminal demo: linting four Architect flows finds 3 errors, 6 warnings and 1 info, each with its line number and rule" width="100%">
+<img src="docs/app-flow.png" alt="Web interface in dark mode: the support line flow drawn as a diagram, a selected transfer and its implicit-end warning on the right" width="100%">
 
-<sub>Linting the flows in [examples/flows](examples/flows) (`npm run lint:examples`).</sub>
+<sub>`flow-inspector serve` on the flows in [examples/flows](examples/flows) (`npm run serve:example`).</sub>
+
+## Quick start
+
+```sh
+npx github:oebh2408/genesys-flow-inspector serve flows/ --inventory inventory.json
+```
+
+Open http://localhost:4100. `flows/` is a directory of Archy YAML exports (the export command is under [Command line](#command-line)) and the inventory is optional (see [Inventory](#inventory)). To try it on the example flows:
+
+```sh
+git clone https://github.com/oebh2408/genesys-flow-inspector
+cd genesys-flow-inspector
+npm install
+npm run serve:example
+```
 
 ## What it checks
 
@@ -49,7 +64,27 @@ npx github:oebh2408/genesys-flow-inspector lint flows/
 
 Requires Node.js 18 or later.
 
-## Usage
+## Web interface
+
+```sh
+npx flow-inspector serve flows/ --inventory inventory.json
+```
+
+This starts a local server on http://localhost:4100 that lints every flow in the directory and shows the results in the browser. The overview lists all issues across the flows, with filters by severity and rule; clicking one opens the flow with that node selected.
+
+<img src="docs/app-overview.png" alt="Web interface: the example flows in a sidebar, totals per severity and the list of issues across all flows" width="100%">
+
+Each flow is drawn as a diagram with menus, tasks and transfers, as in the image at the top. Click a node to see its YAML and its issues, or click an issue to jump to the node. Nodes in dead code are faded, dashed purple edges are jumps between tasks and menus, and a red dashed node marks where a path ends without a disconnect or transfer. The sidebar has a page with the rules and their severities.
+
+The page reloads the results when a flow, the inventory or the config file changes, so you can keep it open while editing or re-exporting with Archy. The server only listens on 127.0.0.1 and rejects requests with a different `Host` header. It follows the system light or dark theme.
+
+To share one flow, use **Download HTML** in the interface or `view` from the command line. It writes a self-contained file (no scripts or fonts loaded from the network) that can be attached to a ticket or a pull request:
+
+```sh
+npx flow-inspector view flows/support-line.yaml -o support-line.html
+```
+
+## Command line
 
 Export your flows with Archy:
 
@@ -64,6 +99,10 @@ npx flow-inspector lint flows/
 ```
 
 Each issue has the line and column in the YAML file. The exit code is 1 when there are errors, or more warnings than `--max-warnings`.
+
+<img src="docs/demo.svg" alt="Terminal demo: linting four Architect flows finds 3 errors, 6 warnings and 1 info, each with its line number and rule" width="100%">
+
+<sub>Linting the flows in [examples/flows](examples/flows) (`npm run lint:examples`).</sub>
 
 ### Options
 
@@ -104,28 +143,6 @@ Keys can be singular or plural. Values can be plain names, objects with a `name`
 ```
 
 Each rule can be set to `error`, `warning`, `info` or `off`.
-
-## Web interface
-
-```sh
-npx flow-inspector serve flows/ --inventory inventory.json
-```
-
-This starts a local server on http://localhost:4100 that lints every flow in the directory and shows the results in the browser. The overview lists all issues across the flows, with filters by severity and rule; clicking one opens the flow with that node selected.
-
-<img src="docs/app-overview.png" alt="Web interface: the example flows in a sidebar, totals per severity and the list of issues across all flows" width="100%">
-
-Each flow is drawn as a diagram with menus, tasks and transfers. Click a node to see its YAML and its issues, or click an issue to jump to the node. Nodes in dead code are faded, dashed purple edges are jumps between tasks and menus, and a red dashed node marks where a path ends without a disconnect or transfer.
-
-<img src="docs/app-flow.png" alt="Web interface in dark mode: the support line flow with a selected transfer and its implicit-end warning" width="100%">
-
-The page reloads the results when a flow, the inventory or the config file changes, so you can keep it open while editing or re-exporting with Archy. The server only listens on 127.0.0.1 and rejects requests with a different `Host` header. It follows the system light or dark theme.
-
-To share one flow, use **Download HTML** in the interface or `view` from the command line. It writes a self-contained file (no scripts or fonts loaded from the network) that can be attached to a ticket or a pull request:
-
-```sh
-npx flow-inspector view flows/support-line.yaml -o support-line.html
-```
 
 ## In CI
 
@@ -189,7 +206,7 @@ npm test                # rules against the example flows and hand-written cases
 npm run lint:examples
 npm run view:example    # writes example.html
 npm run demo:svg        # re-renders docs/demo.svg from the real lint output
-npm run build && node dist/cli.js serve examples/flows --inventory examples/inventory.json
+npm run serve:example   # web interface on the example flows
 npm run screenshots     # regenerates the interface images, needs a local Chromium
 ```
 
